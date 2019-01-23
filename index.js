@@ -61,7 +61,6 @@ const spreadData = (params, data, word_type) => {
 
         // and sign index [1] as others data
         let words_on_data_other = words_on_data[1];
-        
 
         // then split that others data by ':' 
         // to split 'translations' data and others
@@ -69,7 +68,7 @@ const spreadData = (params, data, word_type) => {
 
         // sign index [0] as 'translations' data and
         // split them by ',' that mean there is more than one translation
-        let translations = trans_on_data[0].split(/,/);
+        let translations = trans_on_data[0].split(/,/).map(cur => cur.trim().replace(']', ',') );
 
         // then sign index [1] as others data
         let trans_on_data_other = trans_on_data[1];
@@ -85,27 +84,30 @@ const spreadData = (params, data, word_type) => {
 
             // split data 'examples' and 'synonyms' by '>' notation
             // if there is any synonyms data
-            exam_on_data = trans_on_data_other.split(/>/);
+            exam_on_data = trans_on_data_other.split(/>/).map(cur => cur.trim() );
 
-            // if there more than one examples that sign and split by ';'
-            // then split each one of them and add into an array
-            examples = exam_on_data[0].split(/;/);
+            // checking if there is any example data by 
+            if (exam_on_data[0]) {
 
-            // an example contain two data; the word and its translation
-            // that sign and split by ',' notation
-            // split them by ',' and make them as object:
-            // { word: 'example', translation: 'example translation'}
-            examples = examples.map( cur => {
-                examp = {};
-
-                let examp_on_data = cur.split(/,/);
-
-                examp['word'] = examp_on_data[0].trim();
-                examp['translation'] = examp_on_data[1].trim();
-
-                return examp;
-
-            });
+                // if there more than one examples that sign and split by ';'
+                // then split each one of them and add into an array
+                examples = exam_on_data[0].split(/;/);
+                
+                // an example contain two data; the word and its translation
+                // that sign and split by ',' notation
+                // split them by ',' and make them as object:
+                // { word: 'example', translation: 'example translation'}
+                examples = examples.map( cur => {
+                    examp = {};
+                    
+                    let examp_on_data = cur.split(/,/);
+                    
+                    examp['word'] = examp_on_data[0].trim().replace(']', ',');
+                    examp['translation'] = examp_on_data[1].trim().replace(']', ',');
+                    
+                    return examp;
+                });
+            }
 
             // if there any data as index [1] on array elements
             // it means there is 'synonyms' data
@@ -114,7 +116,9 @@ const spreadData = (params, data, word_type) => {
             if ( exam_on_data[1] ) {
                 synonyms = exam_on_data[1]
                     .split(/,/)
-                    .map( cur => cur.trim() );
+                    .map( cur =>  { 
+                        return cur.trim().replace(']', ',');
+                    });
             }
 
         }
@@ -125,7 +129,7 @@ const spreadData = (params, data, word_type) => {
         if (words.includes(',')) {
             
             // split each 'word' by ',' bcs them will saved as different word
-            words = words.split(/,/).map(cur => cur.trim());
+            words = words.split(/,/).map(cur => cur.trim().replace(']', ','));
 
             // add all 'words' as synonyms of the each all of them
             synonyms = synonyms.concat(words);
