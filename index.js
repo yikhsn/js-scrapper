@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const fs = require('fs');
 
-const dbRoute = 'mongodb://localhost/kamus-aceh-test';
+const dbRoute = 'mongodb://localhost/kamus-aceh-db-prod';
 
 mongoose.connect(
     dbRoute,
@@ -17,20 +17,32 @@ db.on('error', console.error.bind(console, 'MongoDB connection error:'));
 const kataSchema = new mongoose.Schema({
     words: { type: String, required: true },
     word_type: { type: String, required: true },
-
+    
     // bcs might be more than one translation, store in array
     translations: { type: Array, required: true },
     synonyms: { type: Array },
     examples: { type: Array }
 });
 
-const Kata = mongoose.model('Kata', kataSchema);
+const Kata = mongoose.model('word', kataSchema);
 
 async function createKata(data) {
-    const kata = new Kata(data);
-
-    const result = await kata.save();
-    console.log(result);
+    
+    try {        
+        const kata = new Kata(data);
+    
+        const result = await kata.save();
+        console.log(result);
+    } catch (error) {
+        console.log('==================================================================');
+        console.log('==================================================================');
+        console.log('==================================================================');
+        console.log('========PERINGATAN!!! ADA ERROR PADA SAAT MEMASUKKAN DATA INI=====');
+        console.log('================COBA PERIKSA LAGI DATA BERIKUT====================');
+        console.log(data);
+        console.log('==================================================================');
+        console.log('==================================================================');
+    }
 
     // ==== structure how data should be saved in database === 
     // createKata( {
@@ -46,6 +58,7 @@ async function createKata(data) {
     //     ]
     // });
 }
+
 
 const spreadData = (params, data, word_type) => {
 
@@ -102,8 +115,29 @@ const spreadData = (params, data, word_type) => {
                     
                     let examp_on_data = cur.split(/,/);
                     
-                    examp['word'] = examp_on_data[0].trim().replace(']', ',');
-                    examp['translation'] = examp_on_data[1].trim().replace(']', ',');
+                    if (examp_on_data[0]) {
+                        examp['word'] = examp_on_data[0].trim().replace(']', ',');
+                    }
+                    else {
+                        console.log('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
+                        console.log('+++++ WARNIGGG!!!!! TIDAK ADA DATA "KATA" PADA KATA = "' + words + '" +++++');
+                        console.log('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
+                        console.log(data);
+                        console.log('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
+                        console.log('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
+                    }
+
+                    if (examp_on_data[1]) {
+                        examp['translation'] = examp_on_data[1].trim().replace(']', ',');
+                    }
+                    else{
+                        console.log('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
+                        console.log('+++++ WARNIGGG!!!!! TIDAK ADA DATA "TERJEMAHAN" PADA KATA = "' + words + '" +++++');
+                        console.log('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
+                        console.log(data);
+                        console.log('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
+                        console.log('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
+                    } 
                     
                     return examp;
                 });
@@ -135,13 +169,13 @@ const spreadData = (params, data, word_type) => {
             synonyms = synonyms.concat(words);
             
             words.forEach( word => {
-                
+
                 // remove itself 'word' from 'synonyms' array
                 // because them can't be synonyms to theirself
                 let synonyms_filtered = synonyms.filter((value) => {
                     return value !== word;                
                 });
-
+                
                 // because earlier synonyms is concated beetween synonyms
                 // itself and 'words' array, maybe there duplcate word
                 // so each element of array unique
@@ -193,7 +227,9 @@ function readFileTxt(file) {
 
                 spreadData(' adverb ', data, 'kata keterangan');
 
-                spreadData(' partikel ', data), 'kata sandang';
+                spreadData(' partikel ', data, 'kata sandang');
+
+                spreadData(' interjeksi ', data, 'kata seru');
             });
 
         } else console.log(err);
