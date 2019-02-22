@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const fs = require('fs');
 
-const dbRoute = 'mongodb://localhost/kamus-aceh-db-prod';
+const dbRoute = 'mongodb://localhost/kamus-aceh-db';
 
 mongoose.connect(
     dbRoute,
@@ -20,6 +20,7 @@ const kataSchema = new mongoose.Schema({
     
     // bcs might be more than one translation, store in array
     translations: { type: Array, required: true },
+    definitions: { type: Array },
     synonyms: { type: Array },
     examples: { type: Array }
 });
@@ -59,6 +60,32 @@ async function createKata(data) {
     // });
 }
 
+change_example_with_current_word  = (example, word) => {
+
+    // the task of this function is the replace received array of couple word example 
+    // and their translation with the word received in this function
+    //
+    //  example = [
+    //      { 
+    //          word: 'boh mamplam ==',
+    //          translation: 'bauh mangga enak'
+    //      },
+    //      {
+    //          word: 'hana == badan',
+    //          translation: 'tidak enak badan'
+    //      }
+    //  ]
+    //
+    //  word = 'mangat'
+
+    return example.map( cur => {
+        return {
+            word: cur.word.replace(/==/g, word),
+            translation: cur.translation.replace(/==/g, word),            
+        }
+    })
+
+}
 
 const spreadData = (params, data, word_type) => {
 
@@ -76,12 +103,33 @@ const spreadData = (params, data, word_type) => {
         let words_on_data_other = words_on_data[1];
 
         // then split that others data by ':' 
-        // to split 'translations' data and others
+        // to split 'translations and definitions' data and others data
         let trans_on_data = words_on_data_other.split(/:/);
 
-        // sign index [0] as 'translations' data and
-        // split them by ',' that mean there is more than one translation
-        let translations = trans_on_data[0].split(/,/).map(cur => cur.trim().replace(']', ',') );
+
+        let translations, definitions;
+
+        // checking if in trans_on_data include '$', that mean there is definitions data too
+        // if there is, then store each data in variable
+        if (trans_on_data[0].includes('$'))
+        {   
+            // split 'translations and definitions' data by '$'
+            // [0] == translations, [1] == definitions
+            let translations_and_definitions = trans_on_data[0].split('$');
+            
+            // sign index [0] as 'translations' data and
+            // split them by ',' that mean there is more than one translation and them as array
+            translations = translations_and_definitions[0].split(/,/).map(cur => cur.trim().replace(/]/g, ',') );
+            
+            // sign index [0] as 'translations' data and
+            // split them by ',' that mean there is more than one translation and them as array
+            definitions = translations_and_definitions[1].split(/,/).map(cur => cur.trim().replace(/]/g, ',') );
+        }else {
+            
+            translations = trans_on_data[0].split(/,/).map(cur => cur.trim().replace(/]/g, ',') );
+
+            definitions = [];
+        }
 
         // then sign index [1] as others data
         let trans_on_data_other = trans_on_data[1];
@@ -116,7 +164,7 @@ const spreadData = (params, data, word_type) => {
                     let examp_on_data = cur.split(/,/);
                     
                     if (examp_on_data[0]) {
-                        examp['word'] = examp_on_data[0].trim().replace(']', ',');
+                        examp['word'] = examp_on_data[0].trim().replace(/]/g, ',');
                     }
                     else {
                         console.log('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
@@ -128,7 +176,7 @@ const spreadData = (params, data, word_type) => {
                     }
 
                     if (examp_on_data[1]) {
-                        examp['translation'] = examp_on_data[1].trim().replace(']', ',');
+                        examp['translation'] = examp_on_data[1].trim().replace(/]/g, ',');
                     }
                     else{
                         console.log('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
@@ -151,7 +199,7 @@ const spreadData = (params, data, word_type) => {
                 synonyms = exam_on_data[1]
                     .split(/,/)
                     .map( cur =>  { 
-                        return cur.trim().replace(']', ',');
+                        return cur.trim().replace(/]/g, ',');
                     });
             }
 
@@ -163,7 +211,7 @@ const spreadData = (params, data, word_type) => {
         if (words.includes(',')) {
             
             // split each 'word' by ',' bcs them will saved as different word
-            words = words.split(/,/).map(cur => cur.trim().replace(']', ','));
+            words = words.split(/,/).map(cur => cur.trim().replace(/]/g, ','));
 
             // add all 'words' as synonyms of the each all of them
             synonyms = synonyms.concat(words);
@@ -186,8 +234,9 @@ const spreadData = (params, data, word_type) => {
                     words: word,
                     word_type: word_type,
                     translations: translations,
+                    definitions: definitions,
                     synonyms: synonyms_filtered,
-                    examples: examples
+                    examples: change_example_with_current_word(examples, word)
                 });
             });
 
@@ -199,8 +248,9 @@ const spreadData = (params, data, word_type) => {
                 words: words,
                 word_type: word_type,
                 translations: translations,
+                definitions: definitions,
                 synonyms: synonyms,
-                examples: examples
+                examples: change_example_with_current_word(examples, words)
             });
         };
 
