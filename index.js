@@ -230,6 +230,10 @@ function readFileTxt(file) {
                 spreadData(' partikel ', data, 'kata sandang');
 
                 spreadData(' interjeksi ', data, 'kata seru');
+
+                spreadData(' suffix ', data, 'sufiks');
+
+                spreadData(' numeralia ', data, 'kata bilangan');
             });
 
         } else console.log(err);
