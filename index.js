@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const fs = require('fs');
 
-const dbRoute = 'mongodb://localhost/kamus-aceh-db';
+const dbRoute = 'mongodb://localhost/kamus-aceh-db-test';
 
 mongoose.connect(
     dbRoute,
@@ -78,13 +78,15 @@ change_example_with_current_word  = (example, word) => {
     //
     //  word = 'mangat'
 
-    return example.map( cur => {
-        return {
-            word: cur.word.replace(/==/g, word),
-            translation: cur.translation.replace(/==/g, word),            
-        }
-    })
-
+    if ( example ) {
+        return example.map( cur => {
+            return {
+                word: cur.word.replace(/==/g, word),
+                translation: cur.translation.replace(/==/g, word),            
+            }
+        })
+    }
+    else return example;
 }
 
 const spreadData = (params, data, word_type) => {
@@ -119,7 +121,12 @@ const spreadData = (params, data, word_type) => {
             
             // sign index [0] as 'translations' data and
             // split them by ',' that mean there is more than one translation and them as array
-            translations = translations_and_definitions[0].split(/,/).map(cur => cur.trim().replace(/]/g, ',') );
+            translations = translations_and_definitions[0].split(/,/).filter(cur => {
+                if (cur.trim()) return cur;
+            } );
+
+            // trim each word translation in array
+            translations = translations.map( cur => cur.trim().replace(/]/g, ','));
             
             // sign index [0] as 'translations' data and
             // split them by ',' that mean there is more than one translation and them as array
@@ -226,7 +233,7 @@ const spreadData = (params, data, word_type) => {
                 
                 // because earlier synonyms is concated beetween synonyms
                 // itself and 'words' array, maybe there duplcate word
-                // so each element of array unique
+                // so each element of array should be unique
                 synonyms_filtered = [...new Set(synonyms_filtered)];
                 
                 // save data to the database
@@ -284,6 +291,9 @@ function readFileTxt(file) {
                 spreadData(' suffix ', data, 'sufiks');
 
                 spreadData(' numeralia ', data, 'kata bilangan');
+
+                spreadData(' preposisi ', data, 'kata depan');
+
             });
 
         } else console.log(err);
